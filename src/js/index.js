@@ -1,55 +1,42 @@
-const inputSearch = document.getElementById("input-search");
-const btnSearch = document.getElementById("btn-search");
-const profileResults = document.querySelector(".profile-results");
+import { fetchUserProfile } from './api.js';
+import { renderEmptyState, renderLoading, renderProfile } from './ui.js';
 
-const BASE_URL = "https://api.github.com";
+const inputSearch = document.getElementById('input-search');
+const btnSearch = document.getElementById('btn-search');
+const profileResults = document.querySelector('.profile-results');
 
-btnSearch.addEventListener('click', async () => {
-    const userName = inputSearch.value;
+async function handleSearch() {
+  const userName = inputSearch.value.trim();
 
-    if (userName) {
-        profileResults.innerHTML = `<p class="loading">Carregando...</p>`;
+  if (!userName) {
+    alert('Por favor, digite um nome de usuário do GitHub.');
+    renderEmptyState(profileResults);
+    return;
+  }
 
-        try {
-            const response = await fetch(`${BASE_URL}/users/${userName}`);
+  renderLoading(profileResults);
 
-            if (!response.ok) {
-                alert('Usuário não encontrado. Por favor, verifique o nome de usuário e tente novamente.');
-                profileResults.innerHTML = "";
-                return;
-            }
+  try {
+    const userData = await fetchUserProfile(userName);
+    renderProfile(profileResults, userData);
+  } catch (error) {
+    console.error('Erro ao buscar o perfil do usuário:', error);
 
-            const userData = await response.json();
-
-            profileResults.innerHTML = `
-                <div class="profile-card">
-                <img src="${userData.avatar_url}" alt="Avatar de ${userData.name}" class="profile-avatar">
-                <div class="profile-info">
-                    <h2>${userData.name}</h2>
-                    <p>${userData.bio || 'Biografia não disponível'}</p>
-                </div>
-                <div class="profile-stats">
-                    <span class="stat">Seguidores: ${userData.followers}</span>
-                    <span class="stat">Seguindo: ${userData.following}</span>
-                </div>
-             </div> `;
-
-        } catch (error) {
-            console.error('Erro ao buscar o perfil do usuário:', error);
-            alert('Ocorreu um erro ao buscar o perfil do usuário. Por favor, tente novamente mais tarde.');
-            profileResults.innerHTML = "";
-        }
-
+    if (error.code === 'NOT_FOUND') {
+      alert('Usuário não encontrado. Por favor, verifique o nome de usuário e tente novamente.');
     } else {
-        alert('Por favor, digite um nome de usuário do GitHub.');
-        profileResults.innerHTML = "";
+      alert('Ocorreu um erro ao buscar o perfil do usuário. Por favor, tente novamente mais tarde.');
     }
-});
 
+    renderEmptyState(profileResults);
+  }
+}
 
-inputSearch.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        btnSearch.click();
-    }
+btnSearch.addEventListener('click', handleSearch);
+
+inputSearch.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    handleSearch();
+  }
 });
